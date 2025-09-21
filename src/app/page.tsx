@@ -39,42 +39,47 @@ export default function Home() {
           priority
         />
 
-        {user ? (
-          // If the user is signed in, show the dashboard
-          <Dashboard user={user} />
+        {loading ? (
+          <p>Loading...</p> // Show loading spinner or text when loading
         ) : (
-          // If not signed in, show SignUp / SignIn form
           <>
-            {isSignUp ? (
-              <SignUp setError={setError} setLoading={setLoading} setUser={setUser} />
+            {user ? (
+              // If the user is signed in, show the dashboard
+              <Dashboard user={user} />
             ) : (
-              <SignIn setError={setError} setLoading={setLoading} setUser={setUser} />
+              // If not signed in, show SignUp / SignIn form
+              <>
+                {isSignUp ? (
+                  <SignUp setError={setError} setLoading={setLoading} setUser={setUser} />
+                ) : (
+                  <SignIn setError={setError} setLoading={setLoading} setUser={setUser} />
+                )}
+                {error && <p className="text-red-500 mb-4">{error}</p>}
+                <p className="mt-4">
+                  {isSignUp ? (
+                    <>
+                      Already have an account?{" "}
+                      <button
+                        onClick={() => setIsSignUp(false)}
+                        className="text-blue-500 hover:underline"
+                      >
+                        Sign In
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Don&apos;t have an account?{" "}
+                      <button
+                        onClick={() => setIsSignUp(true)}
+                        className="text-blue-500 hover:underline"
+                      >
+                        Sign Up
+                      </button>
+                    </>
+                  )}
+                </p>
+              </>
             )}
-            {error && <p className="text-red-500 mb-4">{error}</p>}
-
-            <p className="mt-4">
-              {isSignUp ? (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    onClick={() => setIsSignUp(false)}
-                    className="text-blue-500 hover:underline"
-                  >
-                    Sign In
-                  </button>
-                </>
-              ) : (
-                <>
-                  Don't have an account?{" "}
-                  <button
-                    onClick={() => setIsSignUp(true)}
-                    className="text-blue-500 hover:underline"
-                  >
-                    Sign Up
-                  </button>
-                </>
-              )}
-            </p>
           </>
         )}
       </main>
