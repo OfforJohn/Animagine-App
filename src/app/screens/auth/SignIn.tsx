@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import { signIn } from "@/firebase/auth";
+import { User } from "firebase/auth"; // Ensure to import the Firebase User type
 
 interface SignInProps {
   setError: (message: string) => void;
   setLoading: (loading: boolean) => void;
-  setUser: (user: any) => void;
+  setUser: (user: User | null) => void; // Type for user is User | null
 }
 
 const SignIn: React.FC<SignInProps> = ({ setError, setLoading, setUser }) => {
@@ -23,10 +24,11 @@ const SignIn: React.FC<SignInProps> = ({ setError, setLoading, setUser }) => {
 
     try {
       const loggedInUser = await signIn(email, password);
-      setUser(loggedInUser); // Set the user in parent component
+      setUser(loggedInUser ?? null); // Set the user in parent component
       console.log(loggedInUser);
     } catch (err) {
-      setError("Invalid email or password.");
+      const errorMessage = err instanceof Error ? err.message : "Invalid email or password.";
+      setError(errorMessage);
       console.error("Error signing in:", err);
     } finally {
       setLoading(false);

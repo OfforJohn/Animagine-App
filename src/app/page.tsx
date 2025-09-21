@@ -16,10 +16,15 @@ export default function Home() {
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Set user if authenticated, else set it to null
+      if (currentUser) {
+        setUser(currentUser); // Set the user if authenticated
+      } else {
+        setUser(null); // Set to null if not authenticated
+      }
     });
 
-    return () => unsubscribe(); // Cleanup the listener on component unmount
+    // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
 
   return (

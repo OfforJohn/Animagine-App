@@ -1,13 +1,12 @@
 "use client";
 import { useState } from "react";
 import { signUp } from "@/firebase/auth";
-
-
+import { User } from "firebase/auth"; // Import Firebase User type
 
 interface SignUpProps {
   setError: (message: string) => void;
   setLoading: (loading: boolean) => void;
-  setUser: (user: any) => void;
+  setUser: (user: User | null) => void; // Set the correct type for user
 }
 
 const SignUp: React.FC<SignUpProps> = ({ setError, setLoading, setUser }) => {
@@ -25,10 +24,11 @@ const SignUp: React.FC<SignUpProps> = ({ setError, setLoading, setUser }) => {
 
     try {
       const newUser = await signUp(email, password);
-      setUser(newUser); // Set the user in parent component
+      setUser(newUser ?? null); // Set the user in parent component, default to null if undefined
       console.log(newUser);
     } catch (err) {
-      setError("Error signing up. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Error signing up. Please try again.";
+      setError(errorMessage);
       console.error("Error signing up:", err);
     } finally {
       setLoading(false);
