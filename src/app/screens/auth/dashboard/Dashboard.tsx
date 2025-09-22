@@ -11,7 +11,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     <CardLayout title="Animagine">
       <div className="flex justify-center mb-8">
         <button className="border-2 border-black text-black font-bold px-6 py-2 rounded-md">
-          Create Charactery
+          Create Character
         </button>
       </div>
     </CardLayout>

@@ -103,7 +103,7 @@ const handleSignIn = async () => {
           />
 
           {!isSignUp && (
-            <p className="text-sm text-gray-600 mb-4 cursor-pointer hover:underline">
+            <p className="block text-sm font-medium mb-1">
               Forgot password?
             </p>
           )}
