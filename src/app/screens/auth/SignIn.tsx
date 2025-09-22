@@ -3,11 +3,12 @@ import { useState } from "react";
 import { signIn, signUp } from "@/firebase/auth";
 import { toast } from "react-toastify";
 import { getFirebaseErrorMessage } from "./utils/firebaseErrors";
+import { User } from "firebase/auth"; // ✅ Import Firebase User type
 
 interface SignInProps {
   setError: (message: string) => void;
   setLoading: (loading: boolean) => void;
-  setUser: (user: any) => void;
+  setUser: (user: User | null) => void; // ✅ Strong type
 }
 
 const SignIn: React.FC<SignInProps> = ({ setError, setLoading, setUser }) => {
@@ -15,68 +16,75 @@ const SignIn: React.FC<SignInProps> = ({ setError, setLoading, setUser }) => {
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
 
-const handleSignIn = async () => {
-  if (!email || !password) {
-    toast.error("Email and password are required.");
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-
-  try {
-    const loggedInUser = await signIn(email, password);
-
-    if (loggedInUser) {
-      setUser(loggedInUser);
-      toast.success("Welcome back!");
-    } else {
-      toast.error("Invalid email or password.");
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      toast.error("Email and password are required.");
+      return;
     }
-  } catch (err: any) {
-    const code = err?.code || "unknown";
-    toast.error(getFirebaseErrorMessage(code));
-    console.error("Error signing in:", err);
-  } finally {
-    setLoading(false);
-  }
-};
 
+    setLoading(true);
+    setError("");
 
- const handleSignUp = async () => {
-  if (!email || !password) {
-    toast.error("Email and password are required.");
-    return;
-  }
+    try {
+      const loggedInUser = await signIn(email, password);
 
-  // Simple client-side validation before hitting Firebase
-  if (password.length < 6) {
-    toast.error("Password must be at least 6 characters.");
-    return;
-  }
+      if (loggedInUser) {
+        setUser(loggedInUser ?? null);
+        toast.success("Welcome back!");
+      } else {
+        toast.error("Invalid email or password.");
+      }
+    } catch (err: unknown) {
+      // ✅ use `unknown` instead of `any`
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code: string }).code
+          : "unknown";
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    toast.error("Please enter a valid email address.");
-    return;
-  }
+      toast.error(getFirebaseErrorMessage(code));
+      console.error("Error signing in:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  setLoading(true);
-  setError("");
+  const handleSignUp = async () => {
+    if (!email || !password) {
+      toast.error("Email and password are required.");
+      return;
+    }
 
-  try {
-    const newUser = await signUp(email, password);
-    setUser(newUser);
-    toast.success("Account created successfully!");
-  } catch (err: any) {
-    const code = err?.code || "unknown";
-    toast.error(getFirebaseErrorMessage(code));
-    console.error("Error signing up:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return;
+    }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const newUser = await signUp(email, password);
+      setUser(newUser ?? null);
+      toast.success("Account created successfully!");
+    } catch (err: unknown) {
+      // ✅ use `unknown` instead of `any`
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code: string }).code
+          : "unknown";
+
+      toast.error(getFirebaseErrorMessage(code));
+      console.error("Error signing up:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -103,9 +111,7 @@ const handleSignIn = async () => {
           />
 
           {!isSignUp && (
-            <p className="block text-sm font-medium mb-1">
-              Forgot password?
-            </p>
+            <p className="block text-sm font-medium mb-1">Forgot password?</p>
           )}
 
           <button
