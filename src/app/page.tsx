@@ -37,7 +37,8 @@ export default function Home() {
           <>
             {user ? (
               // If the user is signed in, show the dashboard
-              <Dashboard user={user} />
+             <Dashboard user={user} setUser={setUser} />
+
             ) : (
               // If not signed in, show SignUp / SignIn form
               <>
