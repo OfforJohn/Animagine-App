@@ -4,7 +4,7 @@ import { onAuthStateChanged, User } from "firebase/auth"; // Firebase auth state
 import { auth } from "../firebase/firebase"; // Import firebase auth
 import SignIn from "./screens/auth/SignIn";
 import SignUp from "./screens/auth/SignUp"; // Import SignUp component
-import Dashboard from "./screens/auth/dashboard/Dashboard"; // Import Dashboard component
+import Dashboard from "./screens/auth/dashboard/Dashboard";
 import Image from "next/image";
 
 export default function Home() {
@@ -28,8 +28,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 bg-gray-50">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start max-w-md w-full">
+    <div className="font-sans min-h-screen flex items-center justify-center bg-gray-50 p-1">
        
 
         {loading ? (
@@ -61,13 +60,8 @@ export default function Home() {
                     </>
                   ) : (
                     <>
-                      Don&apos;t have an account?{" "}
-                      <button
-                        onClick={() => setIsSignUp(true)}
-                        className="text-blue-500 hover:underline"
-                      >
-                        Sign Up
-                      </button>
+                     
+                   
                     </>
                   )}
                 </p>
@@ -75,7 +69,7 @@ export default function Home() {
             )}
           </>
         )}
-      </main>
+   
     </div>
   );
 }
