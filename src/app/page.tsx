@@ -4,7 +4,7 @@ import { onAuthStateChanged, User } from "firebase/auth"; // Firebase auth state
 import { auth } from "../firebase/firebase"; // Import firebase auth
 import SignIn from "./screens/auth/SignIn";
 import SignUp from "./screens/auth/SignUp"; // Import SignUp component
-import Dashboard from "./screens/dashboard/Dashboard"; // Import Dashboard component
+import Dashboard from "./screens/auth/dashboard/Dashboard"; // Import Dashboard component
 import Image from "next/image";
 
 export default function Home() {

@@ -1,11 +1,10 @@
 // src/firebase/auth.js
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase"; // Import the initialized auth instance
+import { auth } from "./firebase";
 
 // Sign up user with email and password
 export const signUp = async (email, password) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
     return userCredential.user;
   } catch (error) {
     console.error("Error signing up: ", error.message);
@@ -15,7 +14,7 @@ export const signUp = async (email, password) => {
 // Sign in user with email and password
 export const signIn = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
     return userCredential.user;
   } catch (error) {
     console.error("Error signing in: ", error.message);
@@ -23,15 +22,15 @@ export const signIn = async (email, password) => {
 };
 
 // Sign out user
-export const logOut = async () => {
+export const signOut = async () => {
   try {
-    await signOut(auth);
+    await auth.signOut();
   } catch (error) {
     console.error("Error signing out: ", error.message);
   }
 };
 
 // Listen to auth state changes
-export const onAuthStateChangedListener = (callback) => {
-  return onAuthStateChanged(auth, callback);
+export const onAuthStateChanged = (callback) => {
+  return auth.onAuthStateChanged(callback);
 };
