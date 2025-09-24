@@ -1,6 +1,6 @@
 // src/firebase/firebase.js
 import { initializeApp } from "firebase/app";  // Import initializeApp from modular SDK
-import { getAuth } from "firebase/auth";        // Import getAuth from modular SDK
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";  // Import getFirestore from modular SDK
 import { getStorage } from "firebase/storage";  // Import getStorage from modular SDK
 
@@ -22,3 +22,8 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const firestore = getFirestore(app);
 export const storage = getStorage(app);
+
+// ✅ Forgot password function
+export const resetPassword = (email) => {
+  return sendPasswordResetEmail(auth, email);
+};

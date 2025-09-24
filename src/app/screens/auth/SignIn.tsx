@@ -4,6 +4,7 @@ import { signIn, signUp } from "@/firebase/auth";
 import { toast } from "react-toastify";
 import { getFirebaseErrorMessage } from "./utils/firebaseErrors";
 import { User } from "firebase/auth"; // ✅ Import Firebase User type
+import { resetPassword } from "@/firebase/firebase";
 
 interface SignInProps {
   setError: (message: string) => void;
@@ -47,6 +48,32 @@ const SignIn: React.FC<SignInProps> = ({ setError, setLoading, setUser }) => {
       setLoading(false);
     }
   };
+
+const handleForgotPassword = async () => {
+  if (!email) {
+    toast.error("Please enter your email first.");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/send-reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      toast.success("Password reset email sent! Check your inbox.");
+    } else {
+      toast.error(data.error || "Something went wrong.");
+    }
+  } catch (err) {
+    toast.error("Error sending reset email.");
+    console.error(err);
+  }
+};
+
 
   const handleSignUp = async () => {
     if (!email || !password) {
@@ -109,10 +136,16 @@ const SignIn: React.FC<SignInProps> = ({ setError, setLoading, setUser }) => {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full border rounded-md px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+{!isSignUp && (
+  <button
+    type="button"
+    onClick={handleForgotPassword}
+    className="text-sm text-black hover:underline mb-3 text-left"
+  >
+    Forgot password?
+  </button>
+)}
 
-          {!isSignUp && (
-            <p className="block text-sm font-medium mb-1">Forgot password?</p>
-          )}
 
           <button
             onClick={isSignUp ? handleSignUp : handleSignIn}
