@@ -1,12 +1,22 @@
 // src/firebase/listeners.ts
-import { collection, query, where, onSnapshot, Unsubscribe, QueryConstraint, DocumentData } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  Unsubscribe,
+  QueryConstraint,
+  DocumentData,
+  QueryDocumentSnapshot,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
-type Project = { id: string; [key: string]: any };
+// Replace "any" with DocumentData to match Firestore types
+type Project = { id: string } & DocumentData;
 
 /**
  * Sets up a real-time listener on a Firestore collection with optional filters.
- * 
+ *
  * @param collectionName - Firestore collection to listen to
  * @param filters - Optional array of Firestore query constraints like where()
  * @param onUpdate - Callback called with array of documents on every update
@@ -22,10 +32,12 @@ export const listenToCollection = (
   const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const docs: Project[] = snapshot.docs.map(
+        (doc: QueryDocumentSnapshot<DocumentData>) => ({
+          id: doc.id,
+          ...doc.data(),
+        })
+      );
       onUpdate(docs);
     },
     (error) => {

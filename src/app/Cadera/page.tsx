@@ -10,10 +10,10 @@ import waveAnim from "@/animations/wave.json";
 import { useRouter } from "next/navigation";
 
 
-const animations: Record<string, any> = {
+const animations: Record<string, object> = {
   Walk: walkAnim,
   Wave: waveAnim,
-  Dance: danceAnim
+  Dance: danceAnim,
 };
 
 interface TimelineBlock {
