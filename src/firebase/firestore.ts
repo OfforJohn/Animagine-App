@@ -10,6 +10,7 @@ export const addItem = async (
   try {
     const docRef = await addDoc(collection(db, collectionName), data);
     return docRef.id;
+    
   } catch (error: any) {
     console.error("Error adding document: ", error.message);
   }
