@@ -5,3 +5,16 @@
 .min-h-screen {
     min-height: 95vh;
 }
+
+@keyframes shakeFadeOut {
+  0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+  20% { transform: translateX(-10px) rotate(-5deg); opacity: 1; }
+  40% { transform: translateX(10px) rotate(5deg); opacity: 1; }
+  60% { transform: translateX(-10px) rotate(-5deg); opacity: 0.5; }
+  80% { transform: translateX(10px) rotate(5deg); opacity: 0.3; }
+  100% { transform: translateX(0) rotate(0deg); opacity: 0; }
+}
+
+.animate-shake-fade-out {
+  animation: shakeFadeOut 0.6s forwards;
+}
