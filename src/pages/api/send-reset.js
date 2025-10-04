@@ -17,7 +17,7 @@ export default async function handler(req, res) {
  await mailTransporter.sendMail({
   from: `"Animagine" <${process.env.MAIL_USER}>`,
   to: email,
-  subject: "Reset your MyShop password",
+  subject: "Reset your Animagine password",
   html: `
   <div style="font-family: Arial, sans-serif; background-color:#f9fafb; padding:40px; color:#111827;">
     <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       <div style="padding:30px;">
         <p style="font-size:16px; margin-bottom:20px;">Hi there,</p>
         <p style="font-size:16px; line-height:1.5; margin-bottom:25px;">
-          We received a request to reset your password for your <strong>MyShop</strong> account.  
+          We received a request to reset your password for your <strong>Animagine</strong> account.  
           Click the button below to create a new password:
         </p>
 
