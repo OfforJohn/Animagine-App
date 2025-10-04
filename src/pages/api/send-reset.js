@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   try {
     // Generate Firebase reset link
     const resetLink = await admin.auth().generatePasswordResetLink(email, {
-      url: "http://localhost:3000/login", // redirect after reset
+      url: "https://animagine-app.vercel.app/login", // redirect after reset
     });
 
     // Send email with Gmail SMTP
