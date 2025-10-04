@@ -11,17 +11,15 @@ import {
     Timestamp,
     onSnapshot,
     setLogLevel,
+    deleteDoc,
+    doc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { supabase } from "@/lib/supabaseClient"; // ⬅️ import Supabase client
+import { supabase } from "@/lib/supabaseClient";
 import { ToastContainer, toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 import Link from "next/link";
-import { deleteDoc, doc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-
-
-
 
 interface Project {
     id: string;
@@ -32,35 +30,41 @@ interface Project {
 
 const CardLayout: React.FC = () => {
     const [title, setTitle] = useState("");
-    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [projects, setProjects] = useState<Project[]>([]);
-
-    const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
-    
+    const [deletingProjectId, setDeletingProjectId] = useState<string | null>(
+        null
+    );
 
     const [userId, setUserId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const today = new Date().toLocaleDateString();
 
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [prompt, setPrompt] = useState("");
+
     const router = useRouter();
+
+    // sample prompts
+    const samplePrompts = [
+        "Anime hero with blue hair",
+        "Cyberpunk soldier with neon lights",
+        "Fantasy elf archer",
+        "Cartoon style cat with armor",
+    ];
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("✅ Auth UID:", `"${user.uid}"`);
                 setUserId(user.uid);
 
                 const q = query(collection(db, "projects"), where("userId", "==", user.uid));
                 const unsubscribeFirestore = onSnapshot(
                     q,
                     (snapshot) => {
-                        console.log("📦 Fetched docs:", snapshot.docs.length);
                         const projectsData: Project[] = [];
-
                         snapshot.forEach((doc) => {
                             const data = doc.data();
-                            console.log("🎯 Doc userId:", `"${data.userId}"`, "Title:", data.title);
                             projectsData.push({
                                 id: doc.id,
                                 title: data.title,
@@ -68,8 +72,7 @@ const CardLayout: React.FC = () => {
                                 thumbnailUrl: data.thumbnailUrl,
                             });
                         });
-
-                        setProjects(projectsData);  // <-- Set the newly created array here
+                        setProjects(projectsData);
                         setError(null);
                     },
                     (err) => {
@@ -89,42 +92,6 @@ const CardLayout: React.FC = () => {
     }, []);
 
     const handleDeleteProject = async (projectId: string) => {
-        toast(
-            ({ closeToast }) => (
-                <div className="flex flex-col gap-2">
-                    <p>Are you sure you want to delete this project?</p>
-                    <div className="flex justify-end gap-2 mt-10">
-                        <button
-                            className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                            onClick={() => closeToast && closeToast()}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                            onClick={() => {
-                                closeToast && closeToast();
-                                triggerDeleteAnimation(projectId);
-                            }}
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            ),
-            {
-                autoClose: false,
-                closeOnClick: false,
-                draggable: false,
-            }
-        );
-    };
-
-    const triggerDeleteAnimation = (projectId: string) => {
-        setDeletingProjectId(projectId);
-    };
-
-    const onAnimationEnd = async (projectId: string) => {
         try {
             await deleteDoc(doc(db, "projects", projectId));
             setProjects((prev) => prev.filter((proj) => proj.id !== projectId));
@@ -133,49 +100,114 @@ const CardLayout: React.FC = () => {
             console.error("Delete failed:", err);
             toast.error("Failed to delete project.");
         }
-        setDeletingProjectId(null);
     };
 
-
-
-
-    setLogLevel("debug");
-
-    const handleCreateProject = async () => {
-        if (!title.trim() || !userId) {
-            setError("Please enter a project title.");
-            toast.error("Please enter a project title.");
+    // Horde API Call
+    const generateCharacter = async () => {
+        if (!prompt.trim()) {
+            toast.error("Enter a prompt first!");
             return;
         }
 
         setLoading(true);
-        setError(null);
-
-        toast.success("✅ Project created successfully!");
-                router.push("/Cadera");
+        setGeneratedImage(null);
 
         try {
-            let thumbnailUrl = "";
+            // 1. Start generation
+            const response = await fetch("https://stablehorde.net/api/v2/generate/async", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "apikey": "0000000000", // ⚡ replace with your Horde API key
+                },
+                body: JSON.stringify({
+                    prompt,
+                    params: {
+                        sampler_name: "k_lms",
+                        cfg_scale: 7.5,
+                        width: 512,
+                        height: 512,
+                        steps: 20,
+                        n: 1,
+                    },
+                    nsfw: false,
+                    censor_nsfw: true,
+                }),
+            });
 
-            if (thumbnailFile) {
-                const fileName = `${Date.now()}_${thumbnailFile.name}`;
-                const filePath = `test/${userId}/${fileName}`;
+            const data = await response.json();
+            if (!data.id) throw new Error("Failed to start generation");
 
-                const { data, error: uploadError } = await supabase.storage
-                    .from("test")
-                    .upload(filePath, thumbnailFile);
+            // 2. Poll for status
+            let finished = false;
+            let imgResult: string | null = null;
 
-                if (uploadError) {
-                    console.error("Supabase upload error:", uploadError);
-                    throw new Error("Failed to upload thumbnail");
+            while (!finished) {
+                const poll = await fetch(
+                    `https://stablehorde.net/api/v2/generate/status/${data.id}`
+                );
+                const pollData = await poll.json();
+
+                if (pollData.done && pollData.generations?.length > 0) {
+                    const img = pollData.generations[0].img;
+
+                    // Some workers return base64, some return URL
+                    if (img.startsWith("http")) {
+                        const imgRes = await fetch(img);
+                        const blob = await imgRes.blob();
+                        const reader = new FileReader();
+                        imgResult = await new Promise<string>((resolve) => {
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(blob);
+                        });
+                    } else {
+                        imgResult = `data:image/png;base64,${img}`;
+                    }
+
+                    finished = true;
+                } else {
+                    await new Promise((res) => setTimeout(res, 5000)); // wait 5s
                 }
-
-                const { data: urlData } = supabase.storage
-                    .from("test")
-                    .getPublicUrl(filePath);
-
-                thumbnailUrl = urlData?.publicUrl ?? "";
             }
+
+            if (imgResult) {
+                setGeneratedImage(imgResult);
+                toast.success("✅ Character generated!");
+            }
+        } catch (err) {
+            console.error("Horde error:", err);
+            toast.error("❌ Failed to generate character");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    // Save to Firestore + Supabase
+    const saveProject = async () => {
+        if (!title.trim() || !userId || !generatedImage) {
+            toast.error("Please enter title and generate an image first.");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // convert base64 to Blob
+            const res = await fetch(generatedImage);
+            const blob = await res.blob();
+
+            const fileName = `${Date.now()}_${title}.png`;
+            const filePath = `characters/${userId}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from("test")
+                .upload(filePath, blob);
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from("test").getPublicUrl(filePath);
+            const thumbnailUrl = urlData?.publicUrl ?? "";
 
             await addDoc(collection(db, "projects"), {
                 title: title.trim(),
@@ -186,21 +218,24 @@ const CardLayout: React.FC = () => {
             });
 
             setTitle("");
-            setThumbnailFile(null);
+            setPrompt("");
+            setGeneratedImage(null);
+            toast.success("Project saved!");
         } catch (err) {
-            console.error("Error creating project:", err);
-            setError("Failed to create project. Please try again.");
-            toast.error("❌ Failed to create project.");
+            console.error("Save failed:", err);
+            toast.error("Failed to save project.");
         } finally {
             setLoading(false);
         }
     };
 
+    setLogLevel("debug");
+
     return (
         <ProtectedRoute>
             <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
                 <ToastContainer position="top-right" autoClose={3000} />
-                <div className="w-full max-w-[1000px] min-h-[600px] sm:min-h-[750px] md:min-h-[700px] border-2 border-black rounded-lg shadow-lg p-6 bg-gray-200 flex flex-col">
+                <div className="w-full max-w-[1000px] min-h-[600px] border-2 border-black rounded-lg shadow-lg p-6 bg-gray-200 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                         <Link href="/">
@@ -213,53 +248,72 @@ const CardLayout: React.FC = () => {
                         </button>
                     </div>
 
-
                     {/* New Project */}
-                    <h3 className="text-xl font-semibold mb-3">New Project</h3>
+                    <h3 className="text-xl font-semibold mb-3">New Character Project</h3>
                     <div className="p-4 sm:p-8 border rounded-md bg-gray-300 mb-8">
                         <div className="flex flex-col gap-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <p className="font-medium whitespace-nowrap">Animation Title:</p>
-                                <input
-                                    type="text"
-                                    placeholder="Enter animation title..."
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    className="flex-1 p-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    disabled={loading}
-                                />
-                            </div>
+                            <input
+                                type="text"
+                                placeholder="Enter project title..."
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="p-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={loading}
+                            />
 
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <p className="font-medium whitespace-nowrap">Thumbnail:</p>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            setThumbnailFile(e.target.files[0]);
-                                        }
-                                    }}
-                                    disabled={loading}
-                                />
-                            </div>
+                            <textarea
+                                placeholder="Enter a character prompt..."
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                className="p-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={3}
+                            />
 
-                            <p className="text-sm text-black">Date: {today}</p>
+                            {/* Sample prompts */}
+                            <div className="flex flex-wrap gap-2">
+                                {samplePrompts.map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPrompt(p)}
+                                        className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                            </div>
 
                             <button
-                                onClick={handleCreateProject}
-                                className={`bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-max ${loading ? "opacity-50 cursor-not-allowed" : ""
-                                    }`}
+                                onClick={generateCharacter}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-max"
                                 disabled={loading}
                             >
-                                {loading ? "Creating..." : "Create Project"}
+                                {loading ? "Generating..." : "Generate Character"}
                             </button>
-                            {error && <p className="text-red-600 mt-2">{error}</p>}
+
+                            {generatedImage && (
+                                <div className="mt-4">
+                                    <img
+                                        src={generatedImage}
+                                        alt="Generated character"
+                                        className="w-64 h-64 object-cover rounded border"
+                                    />
+                                </div>
+                            )}
+
+                            {generatedImage && (
+                                <button
+                                    onClick={saveProject}
+                                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 w-max mt-4"
+                                    disabled={loading}
+                                >
+                                    Save Project
+                                </button>
+                            )}
                         </div>
                     </div>
 
                     {/* Previous Projects */}
-                    <h3 className="text-xl font-semibold mb-3">Previous Animations</h3>
+                    <h3 className="text-xl font-semibold mb-3">Previous Characters</h3>
                     {projects.length === 0 ? (
                         <p className="text-gray-600">No projects found.</p>
                     ) : (
@@ -269,10 +323,8 @@ const CardLayout: React.FC = () => {
                                     key={project.id}
                                     className={`p-4 border rounded-md bg-gray-300 flex flex-col items-center ${deletingProjectId === project.id ? "animate-shake-fade-out" : ""
                                         }`}
-                                         onClick={() => router.push("/Cadera")}
-                                    onAnimationEnd={() =>
-                                        deletingProjectId === project.id && onAnimationEnd(project.id)
-                                    }
+                                    onClick={() => router.push("/Cadera")}
+                                   
                                 >
                                     {project.thumbnailUrl ? (
                                         <img
@@ -284,20 +336,46 @@ const CardLayout: React.FC = () => {
                                         <div className="w-full h-40 bg-gray-400 rounded flex items-center justify-center text-gray-600">
                                             No Thumbnail
                                         </div>
-
                                     )}
                                     <p className="font-medium">{project.title}</p>
                                     <p className="text-sm text-black">{project.date}</p>
-                                  <button
-  onClick={(e) => {
-    e.stopPropagation(); // 👈 Prevent parent click
-    handleDeleteProject(project.id);
-  }}
-  className="mt-2 inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold text-red-700 bg-red-300 rounded hover:bg-red-200 transition-colors duration-200"
->
-  <span role="img" aria-label="trash">🗑️</span>
-</button>
-
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toast(
+                                                ({ closeToast }) => (
+                                                    <div className="flex flex-col gap-2">
+                                                        <p>Are you sure you want to delete <b>{project.title}</b>?</p>
+                                                        <div className="flex justify-end gap-2 mt-4">
+                                                            <button
+                                                                className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                                                                onClick={() => closeToast && closeToast()}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                                                onClick={() => {
+                                                                    closeToast && closeToast();
+                                                                    handleDeleteProject(project.id);
+                                                                }}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ),
+                                                {
+                                                    autoClose: false,
+                                                    closeOnClick: false,
+                                                    draggable: false,
+                                                }
+                                            );
+                                        }}
+                                        className="mt-2 inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold text-red-700 bg-red-300 rounded hover:bg-red-200 transition-colors duration-200"
+                                    >
+                                        🗑️
+                                    </button>
 
                                 </div>
                             ))}
