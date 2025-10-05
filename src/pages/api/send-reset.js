@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       
       <!-- Header -->
       <div style="background:#2563eb; padding:20px; text-align:center;">
-        <h1 style="color:#ffffff; margin:0; font-size:22px;">🔒 MyShop Password Reset</h1>
+        <h1 style="color:#ffffff; margin:0; font-size:22px;">🔒 Animagine Password Reset</h1>
       </div>
       
       <!-- Body -->
